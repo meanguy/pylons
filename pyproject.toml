@@ -25,6 +25,9 @@ coverage = "^7.3.2"
 [tool.setuptools.package-data]
 ldctl = ["py.typed"]
 
+[tool.setuptools.packages.find]
+where = ["ldctl"]
+
 [tool.black]
 line-length = 111
 target-version = ["py312"]
