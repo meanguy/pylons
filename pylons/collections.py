@@ -1,8 +1,8 @@
 from typing import Any
 
 
-class Box[T]:
-    def __init__(self, value: T):
+class Box:
+    def __init__(self, value: Any):
         self.value = value
 
     def __getattr__(self, key: str) -> Any:

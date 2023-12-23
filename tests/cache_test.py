@@ -14,7 +14,7 @@ class Box[T]:
 def n_calls_fn_noargs() -> tuple[Callable[[int], int], Box[int]]:
     box = Box(0)
 
-    @cache_for
+    @cache_for()
     def fn(i: int = 0) -> int:
         nonlocal box
 
@@ -77,7 +77,7 @@ def test_cache_for(fn: Callable[[int], int], box: Box[int], args: list[int], n_c
 def test_cache_for_with_mixed_args_kwargs():
     n_calls = 0
 
-    @cache_for
+    @cache_for()
     def fn(f: float, i: int = 0) -> int:
         nonlocal n_calls
 
@@ -97,7 +97,7 @@ def test_cache_for_with_mixed_args_kwargs():
 def test_cache_for_with_unhashable_types():
     n_calls = 0
 
-    @cache_for
+    @cache_for()
     def fn(l: list[int], t: tuple[int, ...], d: dict[str, int]) -> int:
         nonlocal n_calls
 

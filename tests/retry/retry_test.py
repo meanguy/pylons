@@ -47,3 +47,67 @@ def test_catchable_exception_retry_strategy(
 def test_max_tries_retry_strategy(max_tries, tries, expected):
     strategy = retry.max_retries(max_tries)
     assert strategy(tries, Exception()) == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("max_tries", "tries", "expected"),
+    [
+        [3, 0, True],
+        [3, 1, True],
+        [3, 2, True],
+        [3, 3, False],
+        [5, 0, True],
+        [5, 3, True],
+        [5, 6, False],
+    ],
+)
+async def test_max_tries_retry_strategy_async(max_tries, tries, expected):
+    strategy = retry.max_retries(max_tries)
+    assert strategy(tries, Exception()) == expected
+
+
+@pytest.mark.asyncio
+async def test_retryable_coroutine_no_exceptions():
+    @retry.retryable_coroutine()
+    async def fn():
+        return 1
+
+    assert (await fn()) == 1
+
+
+@pytest.mark.asyncio
+async def test_retryable_coroutine_no_exceptions_with_args():
+    @retry.retryable_coroutine()
+    async def fn(a, *, b):
+        return a + b
+
+    assert (await fn(1, b=2)) == 3
+
+
+@pytest.mark.asyncio
+async def test_retryable_coroutine_thrown_exception():
+    @retry.retryable_coroutine()
+    async def fn():
+        raise Exception()
+
+    with pytest.raises(Exception):
+        await fn()
+
+
+@pytest.mark.asyncio
+async def test_retryable_coroutine_throw_exception_eventual_success():
+    n_calls = 0
+
+    @retry.retryable_coroutine(retry_strategy=retry.max_retries(5))
+    async def fn():
+        nonlocal n_calls
+
+        n_calls += 1
+
+        if n_calls < 3:
+            raise Exception()
+
+        return n_calls
+
+    assert (await fn()) == 3

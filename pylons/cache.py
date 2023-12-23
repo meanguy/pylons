@@ -1,28 +1,24 @@
 import functools
 from datetime import datetime, timedelta
 from threading import Lock
-from typing import Callable, Hashable
+from typing import Any, Callable, Hashable
 
 from pylons.typing import Params, Typename
 
 
 def cache_for(
-    fn: Callable[Params, Typename] | None = None,
     *,
     expires: timedelta | None = None,
     max_size: int = 0,
-) -> Callable[Params, Typename] | Callable[[Callable[Params, Typename]], Callable[Params, Typename]]:
+) -> Callable[[Callable[Params, Typename]], Callable[Params, Typename]]:
     max_size = max(max_size, 0)
-    cache_entries: dict[tuple[Hashable, ...], tuple[Typename, datetime]] = {}
+    cache_entries: dict[tuple[Hashable, ...], tuple[Any, datetime]] = {}
     lock = Lock()
 
     def decorator(fn: Callable[Params, Typename]) -> Callable[Params, Typename]:
         @functools.wraps(fn)
         def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> Typename:
-            key = (
-                args,
-                tuple(sorted(kwargs.items())),
-            )
+            key = (args, tuple(sorted(kwargs.items())))
 
             with lock:
                 cached_keys = list(cache_entries.keys())
@@ -43,7 +39,4 @@ def cache_for(
 
         return wrapper
 
-    if fn is None:
-        return decorator
-    else:
-        return decorator(fn)
+    return decorator

@@ -1,7 +1,8 @@
+import asyncio
 import functools
 import time
+from collections.abc import Awaitable, Callable
 from datetime import timedelta
-from typing import Callable
 
 from pylons.retry._backoff import BackoffStrategy, ExponentialBackoffStrategy, LinearBackoffStrategy
 from pylons.retry._retry import CatchableExceptionRetryStrategy, MaxTriesRetryStrategy, RetryStrategy
@@ -25,18 +26,17 @@ def catch_exception(tries: int, exceptions: type[Exception] | tuple[type[Excepti
 
 
 def retryable(
-    fn: Callable[Params, Typename] | None = None,
     *,
     retry_strategy: RetryStrategy = max_retries(3),
     backoff_strategy: BackoffStrategy = linear_backoff(timedelta()),
-) -> Callable[Params, Typename] | Callable[[Callable[Params, Typename]], Callable[Params, Typename]]:
-    def decorator(fn: Callable[Params, Typename]) -> Callable[Params, Typename]:
-        @functools.wraps(fn)
+) -> Callable[[Callable[Params, Typename]], Callable[Params, Typename]]:
+    def decorator(fn_: Callable[Params, Typename]) -> Callable[Params, Typename]:
+        @functools.wraps(fn_)
         def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> Typename:
             tries = 0
             while True:
                 try:
-                    return fn(*args, **kwargs)
+                    return fn_(*args, **kwargs)
                 except Exception as e:
                     if not retry_strategy(tries, e):
                         raise
@@ -46,7 +46,28 @@ def retryable(
 
         return wrapper
 
-    if fn is None:
-        return decorator
-    else:
-        return decorator(fn)
+    return decorator
+
+
+def retryable_coroutine(
+    *,
+    retry_strategy: RetryStrategy = max_retries(3),
+    backoff_strategy: BackoffStrategy = linear_backoff(timedelta()),
+) -> Callable[[Callable[Params, Awaitable[Typename]]], Callable[Params, Awaitable[Typename]]]:
+    def decorator(coro_: Callable[Params, Awaitable[Typename]]) -> Callable[Params, Awaitable[Typename]]:
+        @functools.wraps(coro_)
+        async def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> Typename:
+            tries = 0
+            while True:
+                try:
+                    return await coro_(*args, **kwargs)
+                except Exception as e:
+                    if not retry_strategy(tries, e):
+                        raise
+                    tries += 1
+
+                    await asyncio.sleep(backoff_strategy(tries, e).total_seconds())
+
+        return wrapper
+
+    return decorator
