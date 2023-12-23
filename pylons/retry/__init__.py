@@ -8,6 +8,21 @@ from pylons.retry._backoff import BackoffStrategy, ExponentialBackoffStrategy, L
 from pylons.retry._retry import CatchableExceptionRetryStrategy, MaxTriesRetryStrategy, RetryStrategy
 from pylons.typing import Params, Typename
 
+__all__ = [
+    "BackoffStrategy",
+    "CatchableExceptionRetryStrategy",
+    "ExponentialBackoffStrategy",
+    "LinearBackoffStrategy",
+    "MaxTriesRetryStrategy",
+    "RetryStrategy",
+    "catch_exception",
+    "exponential_backoff",
+    "linear_backoff",
+    "max_retries",
+    "retryable",
+    "retryable_coroutine",
+]
+
 
 def linear_backoff(delay: timedelta) -> BackoffStrategy:
     return LinearBackoffStrategy(delay)
